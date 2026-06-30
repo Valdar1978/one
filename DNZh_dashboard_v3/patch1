@@ -1,0 +1,170 @@
+--- index.html.orig
++++ index.html
+@@ -248,7 +248,15 @@
+   P5:"Государственная поддержка",P6:"Устойчивость инфраструктуры",P7:"Корпоративное волонтёрство"};
+ const PSUB = {P1:"people",P2:"people",P3:"org",P4:"org",P7:"org",P5:"infra",P6:"infra"};
+ const SUBNAME={people:"Люди",org:"Организации",infra:"Инфраструктура"};
+-const C = {people:"#27AE60",org:"#2E86C1",infra:"#F39C12",support:"#8E44AD"};
++const C = {
++  people:  "#00C853",  // ярко‑зелёный
++  org:     "#2979FF",  // насыщенный синий
++  infra:   "#FF9800",  // ярко‑оранжевый
++  support: "#9C27B0"   // ярко‑пурпурный
++};
+@@ -266,7 +274,13 @@
+ const el = (t,a={},...kids)=>{const e=document.createElement(t);
+   for(const k in a){if(k==="class")e.className=a[k];else if(k==="html")e.innerHTML=a[k];
+     else if(k.startsWith("on"))e.addEventListener(k.slice(2),a[k]);else e.setAttribute(k,a[k]);}
+   kids.flat().forEach(c=>e.append(c?.nodeType?c:document.createTextNode(c??"")));return e;};
+ const fmt = n => (n==null||n==="")?"—":(typeof n==="number"?n.toLocaleString("ru-RU"):n);
+-const zoneColor = v => v>=80?"#27AE60":v>=60?"#2E86C1":v>=40?"#F39C12":v>=20?"#E74C3C":"#922B21";
++const zoneColor = v =>
++  v>=80 ? "#00C853" :
++  v>=60 ? "#2979FF" :
++  v>=40 ? "#FF9800" :
++  v>=20 ? "#FF1744" :
++          "#9E0000";
+@@ -304,10 +318,9 @@
+    {id:"org",ic:"building",t:"«Организации»",lvl:"L4"},
+    {id:"infra",ic:"server",t:"«Инфраструктура»",lvl:"L5"},
+    {id:"forecast",ic:"trending-up",t:"Прогноз до 2030",lvl:"L6",isNew:true},
+    {id:"events",ic:"calendar-range",t:"Мероприятия ДНЖ",lvl:"L7",isNew:true},
+    {id:"methodology",ic:"function",t:"Методика",lvl:"L8"},
+    {id:"alerts",ic:"alert-triangle",t:"Алерты А-01–А-22",lvl:"L9"},
+    {id:"raex",ic:"award",t:"RAEX «Регион-НКО»",lvl:"L10"},
+-   {id:"rating",ic:"list-ordered",t:"Рейтинг 89",lvl:"L11"},
+-   {id:"press",ic:"newspaper",t:"Для прессы",lvl:"L12"},
++   {id:"rating",ic:"list-ordered",t:"Рейтинг 89",lvl:"L11"},
+  ]},
+ ];
+ // доступ по ролям
+@@ -310,9 +323,8 @@
+-const ACCESS={
+-  A:new Set(["country","region","mo","people","org","infra","forecast","events","methodology","alerts","raex","rating","press"]),
+-  B:new Set(["country","region","mo","people","org","infra","forecast","events","methodology","raex","rating"]),
+-  C:new Set(["press"]),
+-};
++const ACCESS = {
++  A:new Set(["country","region","people","org","infra","forecast","events","methodology","alerts","raex","rating"]),
++  B:new Set(["country","region","forecast","events","methodology","raex","rating"])
++};
+@@ -332,11 +344,12 @@
+ /* ====================== фильтры и роль ====================== */
+ function buildRoleSwitch(){
+   const rs=$("#roleSwitch");rs.innerHTML="";
+-  [["A","Аналитик"],["B","ВДЛ"],["C","Пресса"]].forEach(([r,n])=>{
+-    rs.append(el("button",{class:state.role===r?"on":"",title:n,
+-      onclick:()=>{state.role=r; if(!ACCESS[r].has(state.page))state.page=(r==="C"?"press":"country");
+-        buildRoleSwitch();buildNav();render();}},r));
+-  });
++  [["A","Аналитик"],["B","ВДЛ"]].forEach(([r,n])=>{
++    rs.append(el("button",{
++      class:state.role===r?"on":"",title:n,
++      onclick:()=>{state.role=r;
++        if(!ACCESS[r].has(state.page))state.page="country";
++        buildRoleSwitch();buildNav();render();}},r));
++  });
+ }
+@@ -416,8 +429,8 @@
+ function lineChart(canvas,labels,datasets,opts={}){
+   const ch=new Chart(canvas,{type:"line",data:{labels,datasets},options:{
+     responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+     plugins:{legend:{display:opts.legend!==false,labels:{font:{family:"Satoshi",size:11},boxWidth:12,usePointStyle:true}}},
+     scales:{y:{min:opts.min??0,max:opts.max??100,grid:{color:"#eef2f6"},ticks:{font:{family:"Satoshi",size:10}}},
+       x:{grid:{display:false},ticks:{font:{family:"Satoshi",size:10}}}},
+-    elements:{line:{tension:.34,borderWidth:2},point:{radius:opts.points===false?0:2.5,hoverRadius:5}}
++    elements:{line:{tension:.34,borderWidth:3},point:{radius:opts.points===false?0:3,hoverRadius:6}}
+   }});CHARTS.push(ch);return ch;
+ }
+@@ -939,27 +952,6 @@
+ RENDER.infra=subPage("infra","Субиндекс «Инфраструктура»","L5",["P6","P5"],
+   "Устойчивость инфраструктуры добровольчества и государственная поддержка.",
+   [["info","П6 переведён на формулу <b>v6.0</b> (Цель 6): 8 компонентов Ц6_1…Ц6_8 + понижающий коэффициент K_штраф. Переходная формула 2026–2027 упразднена. Цель 2030 = 100."]]);
+-
+-/* ========== pg-mo (L2) ========== */
+-RENDER.mo=v=>{
+-  destroyCharts();const r=curRegion();
+-  v.append(pageHead("L2 · Муниципалитеты",`${r.name} — муниципальный уровень`,
+-    "Распределение Сводного индекса по муниципальным образованиям региона."));
+-  const rng=(s=>()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff;})(parseInt(r.code)*97+13);
+-  const mos=Array.from({length:24},(_,i)=>({n:`МО-${String(i+1).padStart(2,"0")}`,v:Math.round((last(r.total)+(rng()-.5)*30)*10)/10}));
+-  const map=el("div",{class:"tile-map",style:"grid-template-columns:repeat(auto-fill,minmax(56px,1fr))"});
+-  mos.forEach(m=>map.append(el("div",{class:"tile",style:`background:${zoneColor(m.v)};aspect-ratio:1.6`,
+-    onmouseenter:e=>showTip(`<b>${m.n}</b><br><span class="tip-v">${m.v}</span>`,e),onmousemove:moveTip,onmouseleave:hideTip})));
+-  v.append(el("div",{class:"card"},el("h3",{},"Карта МО · хлороплет"),el("div",{class:"ch-sub"},"24 муниципальных образования"),map));
+-  const top5=[...mos].sort((a,b)=>b.v-a.v).slice(0,5);
+-  const tbl=el("table");tbl.append(el("thead",{},el("tr",{},el("th",{},"#"),el("th",{},"МО"),el("th",{},"Сводный"))));
+-  const tb=el("tbody");top5.forEach((m,i)=>tb.append(el("tr",{},el("td",{},i+1),el("td",{},m.n),
+-    el("td",{class:"num",style:`font-weight:700;color:${zoneColor(m.v)}`},m.v))));tbl.append(tb);
+-  v.append(el("div",{class:"card",style:"margin-top:16px"},el("h3",{},"ТОП-5 муниципалитетов"),tbl));
+-};
+@@ -1472,67 +1464,6 @@
+   });
+   setTimeout(draw,10);
+ };
+-
+-/* ========== pg-press (L12) — витрина для прессы ========== */
+-RENDER.press=v=>{
+-  destroyCharts();
+-  const c=DATA.country, yrs=DATA.meta.years, r=curRegion();
+-  v.append(pageHead("L12 · Пресс-центр","Витрина для прессы",
+-    "Публичные показатели без чувствительной аналитики. Доступен экспорт карточки 1200×628 и шаблон пресс-релиза."));
+-  // 4 публичных KPI
+-  const kg=el("div",{class:"grid cols-4"});
+-  const volMln=(last(c.P1)*1.18).toFixed(1);
+-  const kpis=[
+-    ["Сводный индекс ДНЖ, РФ",last(c.total),"",zoneColor(last(c.total))],
+-    ["Добровольцев, млн чел.",volMln,"оценка по П1",C.people],
+-    ["Рост за год, Δ",("+"+(Math.round((last(c.total)-prev(c.total))*10)/10)),"Сводный индекс","#1c7c3f"],
+-    ["Регионов в зелёной зоне",DATA.regions.filter(x=>last(x.total)>=60).length,"из "+DATA.regions.length,C.org],
+-  ];
+-  kpis.forEach(([n,val,sub,col])=>{
+-    kg.append(el("div",{class:"card tight"},el("div",{class:"kpi"},
+-      el("div",{class:"lbl"},n),el("div",{class:"val",style:`color:${col}`},fmt(val)),
+-      el("div",{class:"meta"},sub))));
+-  });
+-  v.append(el("div",{class:"grid",style:"margin-bottom:16px"},kg));
+-  // ряд: карта + экспорт-карточка
+-  const row=el("div",{class:"grid cols-2"});
+-  row.append(el("div",{class:"card"},el("div",{class:"card-h"},el("h3",{},"География добровольчества"),
+-    el("span",{class:"hint"},"Сводный индекс по субъектам")),el("div",{id:"pressMap"}),
+-    el("div",{class:"legend",style:"margin-top:12px"},...[["80–100","#27AE60"],["60–79","#2E86C1"],["40–59","#F39C12"],["20–39","#E74C3C"],["0–19","#922B21"]]
+-      .map(([t,col])=>el("span",{},el("i",{class:"dot",style:`background:${col}`}),t)))));
+-  const exp=el("div",{class:"card"},el("div",{class:"card-h"},el("h3",{},"Карточка для соцсетей"),
+-    el("span",{class:"hint"},"1200×628")),
+-    el("div",{style:"border:1px solid var(--line);border-radius:10px;overflow:hidden"},
+-      el("canvas",{id:"pressCard",width:"1200",height:"628",style:"width:100%;display:block"})),
+-    el("button",{class:"btn",style:"margin-top:12px",onclick:exportPressCard},
+-      el("span",{html:icon("download")}),"Скачать PNG 1200×628"));
+-  row.append(exp);v.append(row);
+-  // пресс-релиз
+-  v.append(el("div",{class:"card",style:"margin-top:16px"},el("div",{class:"card-h"},
+-    el("h3",{},"Шаблон пресс-релиза"),el("span",{class:"hint"},"автогенерация по данным РФ")),
+-    el("div",{id:"pressText",style:"font-size:13.5px;line-height:1.7;color:var(--ink-2)"})));
+-  setTimeout(()=>{
+-    drawTileMap($("#pressMap"));
+-    drawPressCard();
+-    const green=DATA.regions.filter(x=>last(x.total)>=60).length;
+-    const top=[...DATA.regions].sort((a,b)=>last(b.total)-last(a.total))[0];
+-    $("#pressText").innerHTML=
+-      `<p><b>Москва.</b> По итогам отчётного периода Сводный индекс инициативы «Добро — норма жизни» по Российской Федерации составил <b>${last(c.total)}</b> балла из 100 — на ${(Math.round((last(c.total)-prev(c.total))*10)/10)} балла выше предыдущего периода.</p>
+-       <p>Субиндекс «Люди» достиг ${last(c.people)} балла, «Организации» — ${last(c.org)}, «Инфраструктура» — ${last(c.infra)}. В «зелёной» зоне (60+ баллов) находятся ${green} субъектов РФ. Лидером рейтинга стал регион «${top.name}» с результатом ${last(top.total)} балла.</p>
+-       <p>Расчёт выполнен по Методике v5.0 (04.06.2026): помогающие действия учитываются для граждан всех возрастов, активность НКО оценивается по нормированному баллу RAEX «Регион-НКО» с параллельной верификацией В-СОНКО.</p>
+-       <p style="font-size:11px;color:var(--ink-3)">Контакт для СМИ: пресс-служба · press@dobro.ru</p>`;
+-  });
+-};
+-
+-function exportPressCard(){
+-  drawPressCard();const cv=$("#pressCard");
+-  const a=document.createElement("a");a.download="dnzh_press_"+DATA.meta.date.replace(/\\./g,"-")+".png";
+-  a.href=cv.toDataURL("image/png");a.click();
+-}
+@@ -1562,7 +1493,7 @@
+ (function init(){
+   const h=location.hash.slice(1);
+   if(h&&ACCESS[state.role].has(h))state.page=h;
+-  else if(!ACCESS[state.role].has(state.page))state.page=(state.role==="C"?"press":"country");
++  else if(!ACCESS[state.role].has(state.page))state.page="country";
+   buildRoleSwitch();
+   buildNav();
+   render();
